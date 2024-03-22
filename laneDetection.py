@@ -2,9 +2,12 @@
 # coding: utf-8
 
 # # Lane Detection Project
+# 
+# We are going to use TuSimple dataset for a lane detection.
 
+# All necessary imports in one place.
 
-# In[1]:
+# In[2]:
 
 
 # Importing necessary libraries
@@ -19,7 +22,6 @@ import torch  # PyTorch for deep learning
 import torch.nn as nn  # PyTorch's neural network module
 from torch.nn.modules.loss import _Loss  # Base class for PyTorch loss functions
 from torch.autograd import Variable  # Autograd for automatic differentiation
-import tqdm  # tqdm for progress bars
 
 
 # ## Overview of Data
@@ -772,13 +774,19 @@ def compute_loss(binary_output, instance_output, binary_label, instance_label):
     ce_loss = nn.CrossEntropyLoss()
     binary_loss = ce_loss(binary_output, binary_label)
 
-    ds_loss = DiscriminativeLoss(delta_var=0.5, delta_dist=3, alpha=1.0, beta=1.0, gamma=0.001, device="cpu")
+    ds_loss = DiscriminativeLoss(delta_var=0.5, delta_dist=3, alpha=1.0, beta=1.0, gamma=0.001, device="cuda")
     instance_loss = ds_loss(instance_output, instance_label)
     
     return binary_loss, instance_loss
 
 
 # Now we are ready to train the network. You may want to create validation subset to track metrics.
+
+# In[14]:
+
+
+# Display information about the NVIDIA GPUs using the nvidia-smi command for the project
+get_ipython().system('nvidia-smi')
 
 
 # In[15]:
@@ -852,7 +860,7 @@ train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=BATCH_S
 validation_dataset = LaneDataset()  # Replace with actual code to initialize your validation dataset
 validation_dataloader = torch.utils.data.DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False)
 
-device = torch.device("cpu")
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 enet_model = ENet(2, 4)
 enet_model.to(device)
@@ -1310,7 +1318,7 @@ NUM_EPOCHS = 20
 
 hnet_train_dataset = HomographyPredictionDataset()
 hnet_train_dataloader = torch.utils.data.DataLoader(hnet_train_dataset, batch_size=BATCH_SIZE, shuffle=False)
-device = torch.device("cpu")
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 hnet_model = HNet()
 hnet_model.to(device)
@@ -1364,7 +1372,7 @@ for epoch in range(NUM_EPOCHS):
 class LaneDetector:
     DEFAULT_IMAGE_SIZE = (512, 256)
     
-    def __init__(self, enet, hnet=None, device="cpu", with_projection=False):
+    def __init__(self, enet, hnet=None, device="cuda", with_projection=False):
         self._enet = enet
         self._hnet = hnet
         self._default_homography = torch.tensor(
